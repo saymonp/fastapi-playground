@@ -1,13 +1,19 @@
 from fastapi import FastAPI
+from core.database import Base, engine
+from routers import produtos
+
+# Cria as tabelas no PostgreSQL se elas não existirem
+Base.metadata.create_all(bind=engine)
 
 app = FastAPI(
-    title="Minha API Profissional",
-    description="API desenvolvida com FastAPI e gerenciada pelo UV",
+    title="API projeto de estudo com Postgres",
     version="1.0.0",
-    docs_url="/docs",      # Swagger UI
-    redoc_url="/redoc",    # ReDoc
 )
 
+# Registra o Router de Produtos
+app.include_router(produtos.router)
+
+
 @app.get("/", tags=["Health Check"])
-async def health_check():
-    return {"status": "ok", "message": "API operacional!"}
+def health_check():
+    return {"status": "ok", "database": "PostgreSQL conectado!"}
