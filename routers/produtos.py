@@ -7,18 +7,17 @@ from core.database import get_db
 from models.produto import ProdutoModel
 from schemas.produto import ProdutoCreate, ProdutoUpdate, ProdutoResponse
 
+from services.produto_service import criar_produto_service
+
 router = APIRouter(prefix="/produtos", tags=["Produtos"])
 
 
 # 1. CRIAR (POST)
 @router.post("/", response_model=ProdutoResponse, status_code=status.HTTP_201_CREATED)
 def criar_produto(payload: ProdutoCreate, db: Session = Depends(get_db)):
-    # Converte o Pydantic Schema para um dicionário e instancia a Model do ORM
-    novo_produto = ProdutoModel(**payload.model_dump())
-    
-    db.add(novo_produto)
-    db.commit()
-    db.refresh(novo_produto) # Recarrega o objeto com o ID gerado pelo Postgres
+
+    novo_produto = criar_produto_service(payload, db)
+
     return novo_produto
 
 
