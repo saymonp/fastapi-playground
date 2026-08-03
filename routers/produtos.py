@@ -1,13 +1,12 @@
 from typing import List
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
-from sqlalchemy import select
 
 from core.database import get_db
-from models.produto import ProdutoModel
 from schemas.produto import ProdutoCreate, ProdutoUpdate, ProdutoResponse
 
-from services.produto_service import criar_produto_service
+from services.produto_service import criar_produto_service, listar_produtos_service, buscar_produto_service, \
+    atualizar_produto_service, deletar_produto_service
 
 router = APIRouter(prefix="/produtos", tags=["Produtos"])
 
@@ -15,7 +14,6 @@ router = APIRouter(prefix="/produtos", tags=["Produtos"])
 # 1. CRIAR (POST)
 @router.post("/", response_model=ProdutoResponse, status_code=status.HTTP_201_CREATED)
 def criar_produto(payload: ProdutoCreate, db: Session = Depends(get_db)):
-
     novo_produto = criar_produto_service(payload, db)
 
     return novo_produto
@@ -24,18 +22,18 @@ def criar_produto(payload: ProdutoCreate, db: Session = Depends(get_db)):
 # 2. LISTAR TODOS (GET)
 @router.get("/", response_model=List[ProdutoResponse])
 def listar_produtos(skip: int = 0, limit: int = 10, db: Session = Depends(get_db)):
-    query = select(ProdutoModel).offset(skip).limit(limit)
-    produtos = db.scalars(query).all()
+    produtos = listar_produtos_service(db, skip, limit)
+
     return produtos
 
 
 # 3. BUSCAR POR ID (GET)
 @router.get("/{produto_id}", response_model=ProdutoResponse)
 def buscar_produto(produto_id: int, db: Session = Depends(get_db)):
-    produto = db.get(ProdutoModel, produto_id)
+    produto = buscar_produto_service(produto_id, db)
     if not produto:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, 
+            status_code=status.HTTP_404_NOT_FOUND,
             detail=f"Produto com ID {produto_id} não foi encontrado."
         )
     return produto
@@ -44,33 +42,25 @@ def buscar_produto(produto_id: int, db: Session = Depends(get_db)):
 # 4. ATUALIZAR PARCIAL/TOTAL (PATCH/PUT)
 @router.patch("/{produto_id}", response_model=ProdutoResponse)
 def atualizar_produto(produto_id: int, payload: ProdutoUpdate, db: Session = Depends(get_db)):
-    produto = db.get(ProdutoModel, produto_id)
+    produto = atualizar_produto_service(produto_id, payload, db)
     if not produto:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, 
+            status_code=status.HTTP_404_NOT_FOUND,
             detail="Produto não encontrado."
         )
 
-    # Pega apenas os campos enviados no JSON (exclude_unset=True)
-    dados_atualizacao = payload.model_dump(exclude_unset=True)
-    for chave, valor in dados_atualizacao.items():
-        setattr(produto, chave, valor)
-
-    db.commit()
-    db.refresh(produto)
     return produto
 
 
 # 5. DELETAR (DELETE)
 @router.delete("/{produto_id}", status_code=status.HTTP_204_NO_CONTENT)
 def deletar_produto(produto_id: int, db: Session = Depends(get_db)):
-    produto = db.get(ProdutoModel, produto_id)
+    produto = deletar_produto_service(produto_id, db)
+
     if not produto:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, 
+            status_code=status.HTTP_404_NOT_FOUND,
             detail="Produto não encontrado."
         )
 
-    db.delete(produto)
-    db.commit()
     return None
