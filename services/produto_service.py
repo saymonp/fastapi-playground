@@ -1,10 +1,8 @@
 from sqlalchemy.orm import Session
 from sqlalchemy import select
 
-from core.database import get_db
 from models.produto import ProdutoModel
-from routers.produtos import buscar_produto
-from schemas.produto import ProdutoCreate, ProdutoUpdate, ProdutoResponse
+from schemas.produto import ProdutoCreate, ProdutoUpdate
 
 def criar_produto_service(payload: ProdutoCreate, db: Session):
     # ** unpack dict
